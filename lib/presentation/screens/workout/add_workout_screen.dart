@@ -71,7 +71,9 @@ class _AddWorkoutScreenState extends ConsumerState<AddWorkoutScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.template != null ? 'Ny träning' : 'Planera träning'),
+        title: Text(
+          widget.template != null ? 'Ny träning' : 'Planerad träning',
+        ),
         /*         actions: [
           // Template picker
           if (templates.isNotEmpty)
@@ -96,7 +98,8 @@ class _AddWorkoutScreenState extends ConsumerState<AddWorkoutScreen> {
             TextField(
               controller: _nameController,
               decoration: const InputDecoration(
-                labelText: 'Träning',
+                labelText: 'Ge ett namn till din träning..',
+                labelStyle: TextStyle(fontStyle: FontStyle.italic),
                 hintText: '',
               ),
               textCapitalization: TextCapitalization.words,

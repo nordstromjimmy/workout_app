@@ -47,7 +47,7 @@ class HomeScreen extends ConsumerWidget {
                               ?.copyWith(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.onSurface.withOpacity(0.5),
+                                ).colorScheme.onSurface.withValues(alpha: 0.5),
                               ),
                         ),
                       ],
@@ -58,7 +58,7 @@ class HomeScreen extends ConsumerWidget {
                     icon: const Icon(Icons.chevron_left),
                     onPressed: () =>
                         ref.read(currentWeekStartProvider.notifier).state =
-                            weekStart.subtract(const Duration(days: 7)),
+                            AppDateUtils.previousWeek(weekStart),
                   ),
                   IconButton(
                     icon: Icon(
@@ -66,7 +66,7 @@ class HomeScreen extends ConsumerWidget {
                       color: isCurrentWeek
                           ? Theme.of(
                               context,
-                            ).colorScheme.onSurface.withOpacity(0.2)
+                            ).colorScheme.onSurface.withValues(alpha: 0.2)
                           : null,
                     ),
                     onPressed: isCurrentWeek
@@ -74,8 +74,8 @@ class HomeScreen extends ConsumerWidget {
                         : () =>
                               ref
                                   .read(currentWeekStartProvider.notifier)
-                                  .state = weekStart.add(
-                                const Duration(days: 7),
+                                  .state = AppDateUtils.nextWeek(
+                                weekStart,
                               ),
                   ),
                   IconButton(
@@ -195,7 +195,7 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = isSelected
         ? Theme.of(context).colorScheme.primary
-        : Theme.of(context).colorScheme.onSurface.withOpacity(0.5);
+        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5);
     return InkWell(
       onTap: onTap,
       child: Padding(

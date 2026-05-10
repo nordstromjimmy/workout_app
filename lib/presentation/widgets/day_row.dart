@@ -101,7 +101,7 @@ class DayRow extends StatelessWidget {
                   )
                 else
                   Text(
-                    '${workouts.length} workout${workouts.length > 1 ? 's' : ''}',
+                    '${workouts.length} träning${workouts.length > 1 ? 'ar' : ''}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurface.withOpacity(0.5),
                     ),

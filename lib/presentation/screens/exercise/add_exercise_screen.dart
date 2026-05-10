@@ -8,32 +8,7 @@ import '../../../data/models/exercise.dart';
 import '../../../presentation/providers/providers.dart';
 
 // ── Emoji presets grouped by category ────────────────────────────────────────
-const _emojiPresets = [
-  '🏋️',
-  '💪',
-  '🤸',
-  '🏃',
-  '🚴',
-  '🧘',
-  '🤼',
-  '⛹️',
-  '🏊',
-  '🥊',
-  '🏅',
-  '⚡',
-  '🔥',
-  '💥',
-  '🎯',
-  '🦵',
-  '🦾',
-  '🫀',
-  '🧠',
-  '🌀',
-  '⏱️',
-  '🏆',
-  '🎽',
-  '👟',
-];
+const _emojiPresets = ['🏋️', '💪', '🏃', '🚴', '🧘'];
 
 class AddExerciseScreen extends ConsumerStatefulWidget {
   final Exercise? exercise;
@@ -172,60 +147,62 @@ class _AddExerciseScreenState extends ConsumerState<AddExerciseScreen> {
       context: context,
       builder: (ctx) => Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Choose icon',
-              style: Theme.of(
-                ctx,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _emojiPresets.map((e) {
-                final selected = _iconEmoji == e;
-                return GestureDetector(
-                  onTap: () {
-                    setState(() => _iconEmoji = e);
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Välj ikon',
+                style: Theme.of(
+                  ctx,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _emojiPresets.map((e) {
+                  final selected = _iconEmoji == e;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() => _iconEmoji = e);
+                      Navigator.pop(ctx);
+                    },
+                    child: Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? Theme.of(ctx).colorScheme.primaryContainer
+                            : Theme.of(ctx).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: selected
+                            ? Border.all(
+                                color: Theme.of(ctx).colorScheme.primary,
+                                width: 2,
+                              )
+                            : null,
+                      ),
+                      child: Center(
+                        child: Text(e, style: const TextStyle(fontSize: 24)),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
+              if (_iconEmoji != null)
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() => _iconEmoji = null);
                     Navigator.pop(ctx);
                   },
-                  child: Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? Theme.of(ctx).colorScheme.primaryContainer
-                          : Theme.of(ctx).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: selected
-                          ? Border.all(
-                              color: Theme.of(ctx).colorScheme.primary,
-                              width: 2,
-                            )
-                          : null,
-                    ),
-                    child: Center(
-                      child: Text(e, style: const TextStyle(fontSize: 24)),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 12),
-            if (_iconEmoji != null)
-              TextButton.icon(
-                onPressed: () {
-                  setState(() => _iconEmoji = null);
-                  Navigator.pop(ctx);
-                },
-                icon: const Icon(Icons.clear),
-                label: const Text('Remove icon'),
-              ),
-          ],
+                  icon: const Icon(Icons.clear),
+                  label: const Text('Ta bort ikon'),
+                ),
+            ],
+          ),
         ),
       ),
     );

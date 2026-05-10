@@ -18,12 +18,9 @@ class WorkoutDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _WorkoutDetailScreenState extends ConsumerState<WorkoutDetailScreen> {
-  // Rest timer
   int _restSeconds = 0;
   Timer? _restTimer;
   bool _timerRunning = false;
-
-  // Stopwatch for session duration
   final Stopwatch _stopwatch = Stopwatch();
 
   @override
@@ -55,6 +52,50 @@ class _WorkoutDetailScreenState extends ConsumerState<WorkoutDetailScreen> {
     });
   }
 
+  Future<void> _completeWorkout(Workout workout) async {
+    final completedCount = workout.exercises.where((e) => e.isCompleted).length;
+    final totalCount = workout.exercises.length;
+
+    // If there are exercises and not all are done, ask first
+    if (totalCount > 0 && completedCount < totalCount) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Inte alla övningar klara'),
+          content: Text(
+            '$completedCount av $totalCount övningar är markerade som klara. '
+            'Vill du ändå avsluta träningen?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Fortsätt träna'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Avsluta ändå'),
+            ),
+          ],
+        ),
+      );
+      if (confirm != true) return;
+    }
+
+    final durationMinutes = _stopwatch.elapsed.inMinutes;
+    _stopwatch.stop();
+    await ref
+        .read(workoutNotifierProvider.notifier)
+        .complete(
+          workout.id,
+          durationMinutes: durationMinutes > 0 ? durationMinutes : null,
+        );
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Träning avklarad! 💪')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final allWorkouts = ref.watch(workoutNotifierProvider);
@@ -64,11 +105,14 @@ class _WorkoutDetailScreenState extends ConsumerState<WorkoutDetailScreen> {
     );
     final theme = Theme.of(context);
 
+    final completedCount = workout.exercises.where((e) => e.isCompleted).length;
+    final totalCount = workout.exercises.length;
+    final allDone = totalCount == 0 || completedCount == totalCount;
+
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            // ── Header ────────────────────────────────────────────────────
             _WorkoutHeader(
               workout: workout,
               elapsed: _stopwatch.elapsed,
@@ -78,7 +122,6 @@ class _WorkoutDetailScreenState extends ConsumerState<WorkoutDetailScreen> {
                   : () => _completeWorkout(workout),
             ),
 
-            // ── Rest timer bar ─────────────────────────────────────────────
             if (_timerRunning)
               _RestTimerBar(
                 seconds: _restSeconds,
@@ -88,14 +131,15 @@ class _WorkoutDetailScreenState extends ConsumerState<WorkoutDetailScreen> {
                 },
               ),
 
-            // ── Exercises ─────────────────────────────────────────────────
             Expanded(
               child: workout.exercises.isEmpty
                   ? Center(
                       child: Text(
-                        'No exercises added',
+                        'Inga övningar tillagda',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.4),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.4,
+                          ),
                         ),
                       ),
                     )
@@ -124,13 +168,44 @@ class _WorkoutDetailScreenState extends ConsumerState<WorkoutDetailScreen> {
                     ),
             ),
 
-            // ── Bottom action ─────────────────────────────────────────────
+            // ── Complete button ───────────────────────────────────────────
             if (!workout.isCompleted)
               Padding(
                 padding: const EdgeInsets.all(20),
-                child: FilledButton.icon(
-                  onPressed: () => _completeWorkout(workout),
-                  label: const Text('Markera träningen som klar'),
+                child: Column(
+                  children: [
+                    // Progress hint shown when not all exercises are done
+                    if (totalCount > 0 && !allDone)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Text(
+                          '$completedCount av $totalCount övningar klara',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    FilledButton.icon(
+                      onPressed: () => _completeWorkout(workout),
+                      // Slightly muted when not all done, but always tappable
+                      style: allDone
+                          ? null
+                          : FilledButton.styleFrom(
+                              backgroundColor: theme.colorScheme.primary
+                                  .withValues(alpha: 0.6),
+                            ),
+                      icon: Icon(
+                        allDone ? Icons.check_rounded : Icons.stop_rounded,
+                      ),
+                      label: Text(
+                        allDone
+                            ? 'Markera träningen som klar'
+                            : 'Avsluta träning tidigt',
+                      ),
+                    ),
+                  ],
                 ),
               ),
           ],
@@ -138,25 +213,9 @@ class _WorkoutDetailScreenState extends ConsumerState<WorkoutDetailScreen> {
       ),
     );
   }
-
-  Future<void> _completeWorkout(Workout workout) async {
-    final durationMinutes = _stopwatch.elapsed.inMinutes;
-    _stopwatch.stop();
-    await ref
-        .read(workoutNotifierProvider.notifier)
-        .complete(
-          workout.id,
-          durationMinutes: durationMinutes > 0 ? durationMinutes : null,
-        );
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Övning färdig"! 💪')));
-    }
-  }
 }
 
-// ── Sub-widgets ─────────────────────────────────────────────────────────────
+// ── Sub-widgets ───────────────────────────────────────────────────────────────
 
 class _WorkoutHeader extends StatelessWidget {
   final Workout workout;
@@ -202,7 +261,7 @@ class _WorkoutHeader extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppTheme.completedColor.withOpacity(0.15),
+                    color: AppTheme.completedColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Row(
@@ -234,13 +293,13 @@ class _WorkoutHeader extends StatelessWidget {
                 Icon(
                   Icons.calendar_today_outlined,
                   size: 14,
-                  color: theme.colorScheme.onSurface.withOpacity(0.4),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
                 const SizedBox(width: 6),
                 Text(
                   AppDateUtils.formatDayFull(workout.date),
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.4),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                 ),
                 if (workout.durationMinutes != null) ...[
@@ -248,18 +307,17 @@ class _WorkoutHeader extends StatelessWidget {
                   Icon(
                     Icons.timer_outlined,
                     size: 14,
-                    color: theme.colorScheme.onSurface.withOpacity(0.4),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                   const SizedBox(width: 4),
                   Text(
                     '${workout.durationMinutes}m',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.4),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
                   ),
                 ],
                 const Spacer(),
-                // Progress indicator
                 Text(
                   '${workout.exercises.where((e) => e.isCompleted).length}/${workout.exercises.length} övningar',
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -286,21 +344,21 @@ class _RestTimerBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      color: theme.colorScheme.primary.withOpacity(0.1),
+      color: theme.colorScheme.primary.withValues(alpha: 0.1),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
         children: [
           Icon(Icons.timer, color: theme.colorScheme.primary, size: 18),
           const SizedBox(width: 8),
           Text(
-            'Rest: ${seconds}s',
+            'Vila: ${seconds}s',
             style: TextStyle(
               color: theme.colorScheme.primary,
               fontWeight: FontWeight.w600,
             ),
           ),
           const Spacer(),
-          TextButton(onPressed: onSkip, child: const Text('Skip')),
+          TextButton(onPressed: onSkip, child: const Text('Hoppa över')),
         ],
       ),
     );
@@ -330,13 +388,12 @@ class _ExerciseBlock extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: exercise.isCompleted
-            ? Border.all(color: AppTheme.completedColor.withOpacity(0.4))
+            ? Border.all(color: AppTheme.completedColor.withValues(alpha: 0.4))
             : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Exercise header
           InkWell(
             onTap: onToggleExercise,
             borderRadius: const BorderRadius.only(
@@ -363,13 +420,14 @@ class _ExerciseBlock extends StatelessWidget {
                         Text(
                           '$completedSets/${exercise.sets.length} sets',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.5),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  // Completion checkbox
                   Checkbox(
                     value: exercise.isCompleted,
                     onChanged: isWorkoutComplete
@@ -382,10 +440,7 @@ class _ExerciseBlock extends StatelessWidget {
               ),
             ),
           ),
-
           const Divider(height: 1),
-
-          // Sets
           ...exercise.sets.asMap().entries.map((entry) {
             final i = entry.key;
             final set = entry.value;
@@ -396,7 +451,6 @@ class _ExerciseBlock extends StatelessWidget {
               onToggle: () => onToggleSet(set.id),
             );
           }),
-
           const SizedBox(height: 4),
         ],
       ),
@@ -422,7 +476,7 @@ class _SetRow extends StatelessWidget {
     final theme = Theme.of(context);
     final color = set.isCompleted
         ? AppTheme.completedColor
-        : theme.colorScheme.onSurface.withOpacity(0.7);
+        : theme.colorScheme.onSurface.withValues(alpha: 0.7);
 
     return InkWell(
       onTap: isWorkoutComplete ? null : onToggle,
@@ -435,8 +489,8 @@ class _SetRow extends StatelessWidget {
               height: 24,
               decoration: BoxDecoration(
                 color: set.isCompleted
-                    ? AppTheme.completedColor.withOpacity(0.15)
-                    : theme.colorScheme.onSurface.withOpacity(0.06),
+                    ? AppTheme.completedColor.withValues(alpha: 0.15)
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.06),
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -451,7 +505,9 @@ class _SetRow extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onSurface.withOpacity(0.4),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.4,
+                          ),
                         ),
                       ),
               ),

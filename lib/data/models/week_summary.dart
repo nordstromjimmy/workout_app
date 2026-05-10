@@ -41,19 +41,19 @@ class WeekSummary {
   String get gradeSummary {
     switch (grade) {
       case WeekGrade.exceeded:
-        return 'Beyond plan 🔥';
+        return 'Utöver planen 🔥';
       case WeekGrade.perfect:
-        return 'Plan crushed ✅';
+        return 'Plan krossad ✅';
       case WeekGrade.good:
-        return 'Solid week 💪';
+        return 'Rejäl vecka 💪';
       case WeekGrade.fair:
-        return 'Halfway there 🙂';
+        return 'Halvvägs där 🙂';
       case WeekGrade.poor:
-        return 'Rough week 😅';
+        return 'Hård vecka 😅';
       case WeekGrade.unplanned:
         return 'No plan, still showed up 👍';
       case WeekGrade.empty:
-        return 'Rest week 😴';
+        return 'Vilo vecka 😴';
     }
   }
 }

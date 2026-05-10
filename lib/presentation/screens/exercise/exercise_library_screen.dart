@@ -7,7 +7,10 @@ import '../../../data/models/exercise.dart';
 import '../../../presentation/providers/providers.dart';
 
 class ExerciseLibraryScreen extends ConsumerStatefulWidget {
-  const ExerciseLibraryScreen({super.key});
+  /// When true the screen is embedded inside a tab — no Scaffold/AppBar.
+  final bool embedded;
+
+  const ExerciseLibraryScreen({super.key, this.embedded = false});
 
   @override
   ConsumerState<ExerciseLibraryScreen> createState() =>
@@ -41,143 +44,113 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
     }
     final sortedCats = grouped.keys.toList()..sort();
 
+    final body = Column(
+      children: [
+        // ── Search ──────────────────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: TextField(
+            decoration: const InputDecoration(
+              hintText: 'Sök övning..',
+              prefixIcon: Icon(Icons.search),
+            ),
+            onChanged: (v) => setState(() => _search = v),
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        // ── List ────────────────────────────────────────────────────────
+        Expanded(
+          child: allExercises.isEmpty
+              ? _EmptyState(onAdd: () => context.push('/exercises/new'))
+              : filtered.isEmpty
+              ? Center(
+                  child: Text(
+                    'Inga övningar hittades',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.4),
+                    ),
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                  itemCount: sortedCats.length,
+                  itemBuilder: (context, catIndex) {
+                    final cat = sortedCats[catIndex];
+                    final exercises = grouped[cat]!;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(4, 16, 0, 8),
+                          child: Text(
+                            cat,
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Column(
+                            children: exercises.asMap().entries.map((entry) {
+                              final i = entry.key;
+                              final ex = entry.value;
+                              return Column(
+                                children: [
+                                  if (i > 0)
+                                    const Divider(height: 1, indent: 72),
+                                  Slidable(
+                                    key: ValueKey(ex.id),
+                                    endActionPane: ActionPane(
+                                      motion: const DrawerMotion(),
+                                      children: [
+                                        SlidableAction(
+                                          onPressed: (_) => _editExercise(ex),
+                                          backgroundColor:
+                                              theme.colorScheme.primary,
+                                          foregroundColor: Colors.white,
+                                          icon: Icons.edit,
+                                          label: 'Redigera',
+                                        ),
+                                        SlidableAction(
+                                          onPressed: (_) => _deleteExercise(ex),
+                                          backgroundColor:
+                                              theme.colorScheme.error,
+                                          foregroundColor: Colors.white,
+                                          icon: Icons.delete,
+                                          label: 'Ta bort',
+                                        ),
+                                      ],
+                                    ),
+                                    child: _ExerciseTile(
+                                      exercise: ex,
+                                      onTap: () => _editExercise(ex),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+
+    // When embedded in a tab, skip the Scaffold — home_screen provides it
+    if (widget.embedded) return body;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Övningar')),
-      body: Column(
-        children: [
-          // ── Search ────────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: TextField(
-              decoration: const InputDecoration(
-                hintText: 'Sök övning..',
-                prefixIcon: Icon(Icons.search),
-              ),
-              onChanged: (v) => setState(() => _search = v),
-            ),
-          ),
-          const SizedBox(height: 8),
-          // ── Category filter ───────────────────────────────────────────
-          /*           SizedBox(
-            height: 40,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                FilterChip(
-                  label: const Text('All'),
-                  selected: _category == null,
-                  onSelected: (_) => setState(() => _category = null),
-                ),
-                const SizedBox(width: 8),
-                ...[
-                  'Strength',
-                  'Bodyweight',
-                  'Cardio',
-                  'Flexibility',
-                  'Other',
-                ].map(
-                  (c) => Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(c),
-                      selected: _category == c,
-                      onSelected: (_) =>
-                          setState(() => _category = _category == c ? null : c),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ), */
-          const SizedBox(height: 8),
-
-          // ── List ──────────────────────────────────────────────────────
-          Expanded(
-            child: allExercises.isEmpty
-                ? _EmptyState(onAdd: () => context.push('/exercises/new'))
-                : filtered.isEmpty
-                ? Center(
-                    child: Text(
-                      'No exercises found',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.4),
-                      ),
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-                    itemCount: sortedCats.length,
-                    itemBuilder: (context, catIndex) {
-                      final cat = sortedCats[catIndex];
-                      final exercises = grouped[cat]!;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(4, 16, 0, 8),
-                            child: Text(
-                              cat,
-                              style: theme.textTheme.labelLarge?.copyWith(
-                                color: theme.colorScheme.primary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surface,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Column(
-                              children: exercises.asMap().entries.map((entry) {
-                                final i = entry.key;
-                                final ex = entry.value;
-                                return Column(
-                                  children: [
-                                    if (i > 0)
-                                      const Divider(height: 1, indent: 72),
-                                    Slidable(
-                                      key: ValueKey(ex.id),
-                                      endActionPane: ActionPane(
-                                        motion: const DrawerMotion(),
-                                        children: [
-                                          SlidableAction(
-                                            onPressed: (_) => _editExercise(ex),
-                                            backgroundColor:
-                                                theme.colorScheme.primary,
-                                            foregroundColor: Colors.white,
-                                            icon: Icons.edit,
-                                            label: 'Edit',
-                                          ),
-                                          SlidableAction(
-                                            onPressed: (_) =>
-                                                _deleteExercise(ex),
-                                            backgroundColor:
-                                                theme.colorScheme.error,
-                                            foregroundColor: Colors.white,
-                                            icon: Icons.delete,
-                                            label: 'Delete',
-                                          ),
-                                        ],
-                                      ),
-                                      child: _ExerciseTile(
-                                        exercise: ex,
-                                        onTap: () => _editExercise(ex),
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
+      body: body,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/exercises/new'),
         icon: const Icon(Icons.add),
@@ -194,19 +167,19 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete exercise?'),
+        title: const Text('Ta bort övning?'),
         content: Text(
-          '"${exercise.name}" will be removed. Existing workouts won\'t be affected.',
+          '"${exercise.name}" tas bort. Befintliga träningspass påverkas inte.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: const Text('Avbryt'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(
-              'Delete',
+              'Ta bort',
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ),
@@ -367,10 +340,10 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('💪', style: const TextStyle(fontSize: 64)),
+            const Text('💪', style: TextStyle(fontSize: 64)),
             const SizedBox(height: 20),
             Text(
-              'Hittade inga övnignar',
+              'Inga övningar tillagda',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -385,6 +358,11 @@ class _EmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 28),
+            FilledButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add),
+              label: const Text('Lägg till övning'),
+            ),
           ],
         ),
       ),

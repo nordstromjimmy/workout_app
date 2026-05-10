@@ -21,7 +21,8 @@ class WeekProgressHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            runSpacing: 6,
             children: [
               _StatChip(
                 icon: Icons.check_circle_outline,
@@ -41,7 +42,7 @@ class WeekProgressHeader extends StatelessWidget {
                 _StatChip(
                   icon: Icons.cancel_outlined,
                   value: summary.totalMissed,
-                  label: 'Missad',
+                  label: 'Missade',
                   color: AppTheme.missedColor,
                 ),
               if (summary.totalAdhoc > 0) ...[
@@ -62,7 +63,9 @@ class WeekProgressHeader extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: ratio,
                 minHeight: 6,
-                backgroundColor: theme.colorScheme.onSurface.withOpacity(0.1),
+                backgroundColor: theme.colorScheme.onSurface.withValues(
+                  alpha: 0.1,
+                ),
                 valueColor: AlwaysStoppedAnimation<Color>(
                   _progressColor(ratio),
                 ),
@@ -72,9 +75,9 @@ class WeekProgressHeader extends StatelessWidget {
             Text(
               summary.totalPlanned == 0
                   ? 'Ingen träning planerad'
-                  : '${(ratio * 100).round()}% of plan complete',
+                  : '${(ratio * 100).round()}% av planerad träning färdig',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ],
@@ -109,7 +112,7 @@ class _StatChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
